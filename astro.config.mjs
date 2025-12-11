@@ -22,6 +22,7 @@ import remarkUnknownDirectives from './src/plugins/remark-unknown-directives' /*
 import remarkMath from 'remark-math' /* for latex math support */
 import rehypeKatex from 'rehype-katex' /* again, for latex math support */
 import remarkGemoji from './src/plugins/remark-gemoji' /* for shortcode emoji support */
+import rehypeMermaid from 'rehype-mermaid';
 import rehypePixelated from './src/plugins/rehype-pixelated' /* Custom plugin to handle pixelated images */
 
 // https://astro.build/config
@@ -44,6 +45,7 @@ export default defineConfig({
     rehypePlugins: [
       [rehypeHeadingIds, { headingIdCompat: true }],
       [rehypeAutolinkHeadings, { behavior: 'wrap' }],
+      [rehypeMermaid, { strategy: "img-svg", dark: true }],
       rehypeTitleFigure,
       [
         rehypeExternalLinks,
