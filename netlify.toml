@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-playwright"
+
+  [plugins.inputs]
+    browsers = ["chromium"]
