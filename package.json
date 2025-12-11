@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
+    "postinstall": "pnpx playwright-core install --with-deps chromium",
     "build": "astro build",
     "postbuild": "pagefind --site dist",
     "preview": "astro preview",
