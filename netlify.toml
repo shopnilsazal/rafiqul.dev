@@ -1,7 +1,6 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@sparticuz/chromium"]
-  timeout = 30
 
 [build]
   functions = "netlify/functions"
