@@ -3,7 +3,7 @@ title: 'FastAPI Deconstructed: Anatomy of a Modern ASGI Framework'
 published: 2024-11-19
 draft: false
 description: 'Written version of my talk at PyCon APAC 2024 in Indonesia'
-tags: ['python', 'fastapi', 'asgi']
+tags: ['python', 'fastapi', 'asgi', 'uvicorn']
 ---
 
 
