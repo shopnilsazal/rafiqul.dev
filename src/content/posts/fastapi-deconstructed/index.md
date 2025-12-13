@@ -11,11 +11,9 @@ Recently I had the opportunity to talk about the FastAPI under the hood at PyCon
 
 You can find the slide here: https://github.com/shopnilsazal/fastapi-deconstructed
 
-**Note:** Read this post in light mode for better visibility of the diagrams.
-
 ---
 
-FastAPI has quickly become one of the go-to frameworks for Python developers who need high performance and developer-friendly API frameworks. With support for asynchronous programming, dependency injection, and automatic OpenAPI documentation, FastAPI stands out for its speed and ease of use. This post will break down the core components of FastAPI, detailing how each part—from ASGI and Uvicorn to Starlette and Pydantic—works together to create a robust, modern web framework.
+FastAPI has quickly become one of the go-to frameworks for Python developers who need high performance and developer-friendly API frameworks. With support for asynchronous programming, dependency injection, and automatic OpenAPI documentation, FastAPI stands out for its speed and ease of use. This post will break down the core components of FastAPI, detailing how each part from ASGI and Uvicorn to Starlette and Pydantic works together to create a robust, modern web framework.
 
 ### Hello World
 
@@ -54,7 +52,6 @@ granian --interface asgi main:app
 
 We can see, there are multiple ways to run our application. The main thing is, we need an ASGI compliant server to run our application. We can use any server that implements ASGI protocol. But for simplicity, in this post I will use `uvicorn` as the example of ASGI server to explain related things. 
 
----
 
 ### Building Blocks
 
@@ -67,13 +64,16 @@ FastAPI’s functionality is layered on top of several powerful components:
 5. **Dependency Injection:** A built-in dependency injection system that makes it easy to inject dependencies like database connections, services, or configuration etc.
 6. **Automatic API Doc:** Automatically generates an OpenAPI specification for API, which provides detailed documentation and interactive features.
 
----
 
 ### ASGI - The Protocol Layer
 
 ASGI, or the Asynchronous Server Gateway Interface, serves as the foundation of FastAPI, enabling asynchronous programming by providing a standardized interface between the application and server. ASGI evolved from WSGI (Web Server Gateway Interface) to support real-time web features like WebSockets and multiple concurrent connections, allowing Python applications to handle high loads without blocking. Currently ASGI protocol describes HTTP/1.1, HTTP/2 and WebSocket.  
 
-![High Level Diagram](./basic-diagram.png)
+```mermaid 
+flowchart LR
+    A[Client] -->|Sends HTTP Request| B[ASGI Server]
+    B --> |Parse and Translate <br/> to Scope and Events| C[ASGI App]
+```
 
 Here’s how a request flow of ASGI application looks like from a very high level. When client sends a HTTP request, the ASGI server accepts the request and parse & translate it to `scope` and `events` (we will see details of `scope` and `events` a little bit later). Then, the ASGI app receive the `scope` and `events` and process the request. Now let’s see some details about the ASGI protocol itself.
 
@@ -124,7 +124,6 @@ async def app(scope, receive, send):
     })
 ```
 
----
 
 ### Uvicorn - The ASGI Server
 
@@ -137,7 +136,6 @@ Uvicorn is the ASGI server that powers FastAPI applications. You could run a Fas
 3. **Receive Data**: Uvicorn processes incoming request data through ASGI `receive` events.
 4. **Send Response**: FastAPI responds with an ASGI `send` event. Uvicorn packages the response (status code, headers, body) and returns it to the client.
 
----
 
 ### Starlette - The ASGI Framework Layer
 
@@ -181,7 +179,6 @@ curl http://127.0.0.1:8000/hello
 
 This will return the JSON response `{"message": "Hello, World!"}`.
 
-![ASGI Request Lifecycle](./asgi-request-lifecycle.png)
 
 Now, let’s follow the request step-by-step, from the moment the client sends an HTTP request to the response being returned.
 
@@ -303,9 +300,40 @@ Uvicorn receives the ASGI events emitted by Starlette and translates them into H
 - **`http.response.start`** triggers Uvicorn to send the HTTP status line and headers (e.g., `HTTP/1.1 200 OK`).
 - **`http.response.body`** sends the response body (e.g., `{"message": "Hello, World!"}`) to the client.
 
-Uvicorn closes the connection when it has sent all parts of the response.
+Uvicorn closes the connection when it has sent all parts of the response. 
+Let's visualize the journey for better understandning: 
 
----
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Client
+    participant Server as ASGI Server
+    participant App as ASGI App
+
+    Client->>Server: HTTP request (bytes)
+
+    Note over Server: Parse HTTP <br/> Build ASGI scope
+    Server->>App: call app(scope, receive, send)
+
+    alt Request body available
+        App->>Server: await receive()
+        Server-->>App: http.request <br />(body chunk)
+    end
+
+    App->>App: Validate & process request
+
+    alt Valid request
+        App->>Server: await send(http.response.start)
+        App->>Server: await send(http.response.body)
+        Server-->>Client: HTTP response
+    else Invalid request
+        App->>Server: await send(http.response.start)
+        App->>Server: await send(http.response.body (error))
+        Server-->>Client: HTTP error response
+    end
+```
+
 
 ### FastAPI - The High-Level Framework
 
@@ -418,7 +446,6 @@ Here’s a summary of how a request flows through FastAPI:
 4. **FastAPI Endpoint**: FastAPI processes any dependencies, validates incoming data with Pydantic, and handles the request.
 5. **Response**: Uvicorn receives the response from FastAPI and sends it back to the client.
 
----
 
 ### Conclusion
 
