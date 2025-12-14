@@ -54,7 +54,7 @@ flowchart TD
 
 This diagram shows the complete path, but it barely scratches the surface. Let's explore each layer in detail.
 
-## Layer 1: The Kernel Receives Data
+## 1. The Kernel Receives Data
 
 ### Network Interface and Interrupts
 
@@ -221,7 +221,7 @@ sequenceDiagram
 ```
 
 
-## Layer 2: System Calls and File Descriptors
+## 2. System Calls and File Descriptors
 
 ### The Socket File Descriptor
 

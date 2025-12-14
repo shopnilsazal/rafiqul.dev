@@ -16,7 +16,7 @@ This is where the elegance of ASGI shines. While [Part 1](/posts/python-http-jou
 
 Let's cross the system call boundary and enter the world of async Python.
 
-## Layer 3: The Event Loop and I/O Multiplexing
+## 3. The Event Loop and I/O Multiplexing
 
 ### The Problem with Blocking I/O
 
@@ -163,7 +163,7 @@ When `writer.write(response)` is called:
 5. Data is copied from user space into the kernel buffer (via `send()`) and returns once the write is accepted
 
 
-## Layer 4: ASGI Protocol
+## 4. ASGI Protocol
 
 ### Why ASGI Exists
 
