@@ -14,7 +14,7 @@ This two-part series traces the complete journey of an HTTP request in Python's 
 
 By the end of this series, you'll understand exactly what happens when someone makes a request to your FastAPI application, and why ASGI is designed the way it is. 
 
-Let's begin at the lowest level, where photons become packets, and hardware becomes software.
+Let's begin at the lowest level, where photons become [packets](https://en.wikipedia.org/wiki/Network_packet), and hardware becomes software.
 
 ## The Big Picture
 
@@ -58,14 +58,14 @@ This diagram shows the complete path, but it barely scratches the surface. Let's
 
 ### Network Interface and Interrupts
 
-When data arrives at your server, the first component to know about it isn't your Python application or even the operating system's high-level network code. It's the Network Interface Card (NIC) hardware itself.
+When data arrives at your server, the first component to know about it isn't your Python application or even the operating system's high-level network code. It's the [Network Interface Card (NIC)](https://en.wikipedia.org/wiki/Network_interface_controller) hardware itself.
 
 Here's what happens:
 
 1. **Packet Arrival**: The NIC receives electrical signals (or light pulses for fiber) representing your HTTP request
-2. **DMA Transfer**: The NIC uses Direct Memory Access to write the packet data directly into a pre-allocated kernel memory buffer
-3. **Hardware Interrupt**: The NIC triggers a hardware interrupt to notify the CPU that data has arrived
-4. **Interrupt Handler**: The kernel's interrupt handler is invoked, which schedules the network stack to process this data
+2. **DMA Transfer**: The NIC uses [Direct Memory Access](https://en.wikipedia.org/wiki/Direct_memory_access) to write the packet data directly into a pre-allocated kernel memory buffer
+3. **Hardware Interrupt**: The NIC triggers a [hardware interrupt](https://en.wikipedia.org/wiki/Interrupt#Hardware_interrupts) to notify the CPU that data has arrived
+4. **Interrupt Handler**: The kernel's [interrupt handler](https://en.wikipedia.org/wiki/Interrupt_handler) is invoked, which schedules the network stack to process this data
 
 This all happens in microseconds, and it's happening for potentially thousands of packets per second on a busy server.
 
@@ -90,14 +90,14 @@ Once the interrupt handler schedules packet processing, the kernel's network sta
 
 1. **Ethernet Layer**: Strips off the Ethernet frame, validates the destination MAC address
 2. **IP Layer**: Validates IP header, checks destination IP, handles fragmentation if needed
-3. **TCP Layer**: This is where the real work happens. The kernel:
+3. [**TCP Layer**](https://en.wikipedia.org/wiki/Transmission_Control_Protocol): This is where the real work happens. The kernel:
    - Validates checksum: Ensures data integrity
    - Looks up connection: Uses (src_ip, src_port, dst_ip, dst_port) to find the socket
    - Checks sequence numbers: Handles out-of-order packets and duplicates
    - Updates state machine: Manages TCP states (ESTABLISHED, FIN_WAIT, etc.)
    - Performs flow control: Adjusts receive window based on buffer availability
    - Sends ACK: Acknowledges received data automatically
-4. **Delivering to the socket:** Once the kernel identifies the destination socket, it:
+4. **Delivering to the [socket](https://en.wikipedia.org/wiki/Berkeley_sockets):** Once the kernel identifies the destination socket, it:
    - Copies payload data into the socket's receive buffer
    - Updates buffer pointers and available byte count
    - Wakes any process/coroutine waiting on this socket (via the wait queue)
@@ -184,7 +184,7 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1048576)  # 1MB
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1048576)
 ```
 
-These buffers decouple application read/write speed from network speed, enabling efficient pipelining and flow control—essential for TCP's reliability guarantees. Let's take a look at the full picture:
+These buffers decouple application read/write speed from network speed, enabling efficient pipelining and flow-control essential for TCP's reliability guarantees. Let's take a look at the full picture:
 
 ```mermaid
 sequenceDiagram
@@ -225,7 +225,7 @@ sequenceDiagram
 
 ### The Socket File Descriptor
 
-In Unix-like systems, the philosophy is "everything is a file"—including network sockets. When your application creates a socket, the kernel returns a **file descriptor**: a small non-negative integer that serves as an index into the process's file descriptor table.
+In Unix-like systems, the philosophy is ["everything is a file"](https://en.wikipedia.org/wiki/Everything_is_a_file), including [network sockets](https://en.wikipedia.org/wiki/Network_socket). When your application creates a socket, the kernel returns a [**file descriptor**](https://en.wikipedia.org/wiki/File_descriptor): a small non-negative integer that serves as an index into the process's file descriptor table.
 
 ```python
 import socket
@@ -273,11 +273,11 @@ ulimit -n  # Soft limit: 1024
 ulimit -n 65536
 ```
 
-When you run out of file descriptors, `accept()` fails with "Too many open files"—a common production issue. ASGI servers handle this by configuring appropriate limits and connection pooling.
+When you run out of file descriptors, `accept()` fails with "Too many open files", a common production issue. ASGI servers handle this by configuring appropriate limits and connection pooling.
 
 ### System Calls: Crossing the Boundary
 
-System calls are the mechanism for transitioning from user space (where your Python code runs) to kernel space (where the OS manages hardware and resources). This transition is expensive compared to normal function calls. It involves context switching, privilege level changes, and potentially copying data.
+[System calls](https://en.wikipedia.org/wiki/System_call) are the mechanism for transitioning from user space (where your Python code runs) to kernel space (where the OS manages hardware and resources). This transition is expensive compared to normal function calls. It involves context switching, privilege level changes, and potentially copying data.
 
 **What happens during a system call:**
 
@@ -368,7 +368,7 @@ To handle multiple connections, you have three main options:
 2. **Multi-processing**: One process per connection (even more expensive)
 3. **Non-blocking I/O with event loops**: Handle many connections in one thread (efficient, scalable)
 
-ASGI is built on non-blocking sockets and uses an event loop to efficiently multiplex between many connections.
+ASGI is built on non-blocking sockets and uses an [event loop](https://en.wikipedia.org/wiki/Event_loop) to efficiently multiplex between many connections.
 
 ```python
 import socket
@@ -398,6 +398,6 @@ The key insights from this exploration:
 - **Socket buffers are the critical interface**: These kernel-space ring buffers decouple network speed from application speed, enabling efficient flow control
 - **System calls are expensive**: Every transition between user and kernel space involves context switches, which is why minimizing these calls matters for performance
 
-At this point in our journey, data sits ready in socket receive buffers, waiting for your application to read it. The kernel has done its job—ensuring reliable, ordered delivery of bytes. But how does Python efficiently monitor potentially thousands of these sockets without blocking? How does a single thread handle concurrent connections?
+At this point in our journey, data sits ready in socket receive buffers, waiting for your application to read it. The kernel has done its job ensuring reliable, ordered delivery of bytes. But how does Python efficiently monitor potentially thousands of these sockets without blocking? How does a single thread handle concurrent connections?
 
 In [**Part 2**,](/posts/python-http-journey-part-2) we'll explore the application layer—where asyncio's event loop, epoll multiplexing, and the ASGI protocol come together to build the scalable web applications you write every day. We'll see how Python bridges the gap between low-level socket operations and high-level framework code, making concurrent programming both powerful and elegant.

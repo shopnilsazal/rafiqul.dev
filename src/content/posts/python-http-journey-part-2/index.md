@@ -10,7 +10,7 @@ tags: ['python', 'fastapi', 'asgi', 'uvicorn', 'http']
 
 In [Part 1](/posts/python-http-journey-part-1), we followed an HTTP request from the network interface card through the kernel's TCP/IP stack to socket buffers. We saw how hardware interrupts trigger kernel processing, how TCP ensures reliability, and how socket buffers bridge kernel and user space. But our journey isn't complete. The data is sitting in kernel memory and your Python application still hasn't touched it.
 
-**Part 2** picks up where we left off, at the boundary between the operating system and your application. We'll explore how Python's `asyncio` event loop efficiently monitors thousands of sockets using epoll, how ASGI servers like Uvicorn translate raw bytes into structured messages, and how your FastAPI application processes requests without blocking.
+**Part 2** picks up where we left off, at the boundary between the operating system and your application. We'll explore how Python's `asyncio` [event loop](https://docs.python.org/3/library/asyncio-eventloop.html) efficiently monitors thousands of sockets using epoll, how ASGI servers like Uvicorn translate raw bytes into structured messages, and how your FastAPI application processes requests without blocking.
 
 This is where the elegance of ASGI shines. While [Part 1](/posts/python-http-journey-part-1) showed us the raw power of the kernel handling packets at microsecond speeds, Part 2 reveals how Python leverages that power to build scalable, concurrent web applications with clean, readable code.
 
@@ -28,10 +28,10 @@ The solution is **I/O multiplexing**: using a single thread to monitor many file
 
 Operating systems provide system calls for efficient I/O multiplexing:
 
-- **select**: The oldest, works on all platforms, limited to ~1024 file descriptors
+- [**select**](https://en.wikipedia.org/wiki/Select_(Unix)): The oldest, works on all platforms, limited to ~1024 file descriptors
 - **poll**: Similar to select but no hard limit on file descriptors
-- **epoll** (Linux): Highly efficient (uses a red–black tree), O(1) performance for ready events
-- **kqueue** (BSD/macOS): Similar to epoll
+- [**epoll**](https://en.wikipedia.org/wiki/Epoll) (Linux): Highly efficient (uses a red–black tree), O(1) performance for ready events
+- [**kqueue**](https://en.wikipedia.org/wiki/Kqueue) (BSD/macOS): Similar to epoll
 
 Python's `asyncio` uses the most efficient mechanism available on your platform. On Linux, that's `epoll`.
 
@@ -77,7 +77,7 @@ This pattern register file descriptors with epoll, wait for events, handle ready
 
 ### Python's asyncio Event Loop
 
-Python's `asyncio` wraps this low-level epoll/kqueue machinery in a high-level API with coroutines, tasks, and futures. Here's a simplified view of what the event loop does:
+Python's `asyncio` wraps this low-level epoll/kqueue machinery in a high-level API with [coroutines](https://en.wikipedia.org/wiki/Coroutine), tasks, and futures. Here's a simplified view of what the event loop does:
 
 ```mermaid 
 sequenceDiagram
@@ -167,7 +167,7 @@ When `writer.write(response)` is called:
 
 ### Why ASGI Exists
 
-We've now covered how data gets from the network card to the Python event loop. But there's still a gap: how does the event loop pass HTTP requests to your web application (FastAPI)? This is where ASGI comes in. ASGI is a **specification**, an agreed-upon interface between web servers (like Uvicorn) and web applications (like FastAPI).
+We've now covered how data gets from the network card to the Python event loop. But there's still a gap: how does the event loop pass HTTP requests to your web application (FastAPI)? This is where ASGI comes in. ASGI is a [**specification**](https://asgi.readthedocs.io/en/latest/specs/main.html), an agreed-upon interface between web servers (like Uvicorn) and web applications (like FastAPI).
 
 Before ASGI, we had WSGI (Web Server Gateway Interface), which worked perfectly for synchronous Python. But WSGI has a fundamental limitation: it's synchronous and blocking. Every request blocks a worker thread. ASGI solves this by defining an async interface that allows servers and applications to communicate using coroutines.
 
@@ -453,7 +453,7 @@ Closing requires four steps because TCP is full-duplex (two independent pipes):
 client.close()  # Initiates graceful shutdown
 ```
 
-This graceful close ensures no data is lost. After closing, the port enters TIME_WAIT state (60-120 seconds) to handle any delayed packets.
+This graceful close ensures no data is lost. After closing, the port enters `TIME_WAIT` state (60-120 seconds) to handle any delayed packets.
 
 Here's the full trace of a complete HTTP request through all layers:
 
